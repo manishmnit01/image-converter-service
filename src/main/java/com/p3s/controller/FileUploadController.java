@@ -93,7 +93,7 @@ public class FileUploadController {
 		}
 	}
 
-	private void convertTiffForJpeg2000Compression(File inputFile, String outputFullPath) {
+	private void convertTiffForJpeg2000Compression(File inputFile, String outputFullPath) throws Exception {
 		String inputPath = inputFile.getAbsolutePath();
 		FileConvert converter = new FileConvert(inputPath, outputFullPath);
 		converter.convert();

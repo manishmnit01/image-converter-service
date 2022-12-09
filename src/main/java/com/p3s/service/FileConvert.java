@@ -69,7 +69,7 @@ public class FileConvert {
 	}
 
 	/** Do the actual work of converting the input file to the output file. */
-	public void convert() {
+	public void convert() throws Exception {
 		// initialize the files
 		boolean initializationSuccess = initialize();
 
@@ -91,7 +91,7 @@ public class FileConvert {
 	 * @return true if the reader and writer were successfully set up, or false
 	 *   if an error occurred
 	 */
-	private boolean initialize() {
+	private boolean initialize() throws Exception {
 		Exception exception = null;
 		try {
 			// construct the object that stores OME-XML metadata
@@ -110,27 +110,16 @@ public class FileConvert {
 			writer.setInterleaved(reader.isInterleaved());
 			writer.setId(outputFile);
 		}
-		catch (FormatException e) {
-			exception = e;
+		catch (Exception e) {
+			cleanup();
+			throw e;
 		}
-		catch (IOException e) {
-			exception = e;
-		}
-		catch (DependencyException e) {
-			exception = e;
-		}
-		catch (ServiceException e) {
-			exception = e;
-		}
-		if (exception != null) {
-			System.err.println("Failed to initialize files.");
-			exception.printStackTrace();
-		}
-		return exception == null;
+
+		return true;
 	}
 
 	/** Save every plane in the input file to the output file. */
-	private void convertPlanes() {
+	private void convertPlanes() throws Exception {
 		for (int series=0; series<reader.getSeriesCount(); series++) {
 			// tell the reader and writer which series to work with
 			// in FV1000 OIB/OIF, there are at most two series - one
@@ -150,20 +139,8 @@ public class FileConvert {
 
 			// convert each image in the current series
 			for (int image=0; image<reader.getImageCount(); image++) {
-				try {
-					reader.openBytes(image, plane);
-					writer.saveBytes(image, plane);
-				}
-				catch (IOException e) {
-					System.err.println("Failed to convert image #" + image +
-							" in series #" + series);
-					e.printStackTrace();
-				}
-				catch (FormatException e) {
-					System.err.println("Failed to convert image #" + image +
-							" in series #" + series);
-					e.printStackTrace();
-				}
+				reader.openBytes(image, plane);
+				writer.saveBytes(image, plane);
 			}
 		}
 	}
@@ -171,8 +148,12 @@ public class FileConvert {
 	/** Close the file reader and writer. */
 	private void cleanup() {
 		try {
-			reader.close();
-			writer.close();
+			if(reader != null) {
+				reader.close();
+			}
+			if(writer != null) {
+				writer.close();
+			}
 		}
 		catch (IOException e) {
 			System.err.println("Failed to cleanup reader and writer.");
