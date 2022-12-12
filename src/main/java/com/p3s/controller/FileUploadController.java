@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -22,6 +24,8 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.stream.IntStream;
 
 @Controller
 public class FileUploadController {
@@ -85,11 +89,30 @@ public class FileUploadController {
 	}
 
 	private void convertTiffForGroup4Compression(File inputFile, String outputFullPath) throws Exception {
-		try {
-			BufferedImage inputTiffImage = ImageIO.read(inputFile);
-			ImageIO.write(inputTiffImage, "jpeg", new File(outputFullPath));
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		// Below two lines work for single page tiff image but not for multi page.
+		/* BufferedImage inputTiffImage = ImageIO.read(inputFile);
+		   ImageIO.write(inputTiffImage, "jpeg", new File(outputFullPath)); */
+
+		try (ImageInputStream imageInputStream = ImageIO.createImageInputStream(inputFile)) {
+			Iterator<ImageReader> iterator = ImageIO.getImageReaders(imageInputStream);
+			if (iterator == null || !iterator.hasNext()) {
+				throw new RuntimeException("Image file format not supported by ImageIO");
+			}
+
+			// We are just looking for the first reader compatible:
+			ImageReader reader = iterator.next();
+			reader.setInput(imageInputStream);
+			int numPage = reader.getNumImages(true);
+
+			IntStream.range(0, numPage).forEach(imageIndex -> {
+				try {
+					final BufferedImage inputTiffImage = reader.read(imageIndex);
+					final String outputMultiPagePath = outputFullPath + "_" + (imageIndex+1);
+					ImageIO.write(inputTiffImage, "jpeg", new File(outputMultiPagePath));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
 		}
 	}
 
