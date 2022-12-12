@@ -107,7 +107,7 @@ public class FileUploadController {
 			IntStream.range(0, numPage).forEach(imageIndex -> {
 				try {
 					final BufferedImage inputTiffImage = reader.read(imageIndex);
-					final String outputMultiPagePath = outputFullPath + "_" + (imageIndex+1);
+					final String outputMultiPagePath = (imageIndex+1) + "_" + outputFullPath;
 					ImageIO.write(inputTiffImage, "jpeg", new File(outputMultiPagePath));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
