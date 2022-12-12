@@ -66,14 +66,16 @@ public class FileUploadController {
 
 		String outputFileName = FilenameUtils.removeExtension(inputFileName) + ".jpeg";
 
-		String outputFullPath = dir.getAbsolutePath() + File.separator + outputFileName;
+
 
 		try {
-			convertTiffForGroup4Compression(serverFile, outputFullPath);
+			convertTiffForGroup4Compression(serverFile, dir.getAbsolutePath(), outputFileName);
 		} catch (Exception e) {
+			String outputFullPath = dir.getAbsolutePath() + File.separator + outputFileName;
 			convertTiffForJpeg2000Compression(serverFile, outputFullPath);
 		}
 
+		String outputFullPath = dir.getAbsolutePath() + File.separator + outputFileName;
 		Path path = Paths.get(outputFullPath);
 		byte[] data = Files.readAllBytes(path);
 		ByteArrayResource resource = new ByteArrayResource(data);
@@ -88,7 +90,7 @@ public class FileUploadController {
 				.body(resource);
 	}
 
-	private void convertTiffForGroup4Compression(File inputFile, String outputFullPath) throws Exception {
+	private void convertTiffForGroup4Compression(File inputFile, String folderPath, String filePath) throws Exception {
 		// Below two lines work for single page tiff image but not for multi page.
 		/* BufferedImage inputTiffImage = ImageIO.read(inputFile);
 		   ImageIO.write(inputTiffImage, "jpeg", new File(outputFullPath)); */
@@ -107,8 +109,10 @@ public class FileUploadController {
 			IntStream.range(0, numPage).forEach(imageIndex -> {
 				try {
 					final BufferedImage inputTiffImage = reader.read(imageIndex);
-					final String outputMultiPagePath = (imageIndex+1) + "_" + outputFullPath;
-					ImageIO.write(inputTiffImage, "jpeg", new File(outputMultiPagePath));
+					final String outputMultiPagePath = (imageIndex+1) + "_" + filePath;
+					final String finalPath = folderPath + File.separator + outputMultiPagePath;
+
+					ImageIO.write(inputTiffImage, "jpeg", new File(finalPath));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
